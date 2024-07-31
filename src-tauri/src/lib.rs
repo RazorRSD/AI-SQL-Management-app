@@ -1,5 +1,6 @@
 mod mysqlcmd;
 mod pgcmd;
+mod pythonmanager;
 
 use mysqlcmd::DbConnection;
 
@@ -17,6 +18,15 @@ pub fn run() {
             pgcmd::pg_show_databases,
             pgcmd::pg_select_database,
             pgcmd::pg_execute_query,
+            pythonmanager::check_python_installation,
+            pythonmanager::install_python,
+            pythonmanager::manage_venv,
+            pythonmanager::activate_venv,
+            pythonmanager::get_installation_status,
+            pythonmanager::start_python_script,
+            pythonmanager::stop_python_script,
+            pythonmanager::delete_venv,
+            pythonmanager::update_venv_requirements
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

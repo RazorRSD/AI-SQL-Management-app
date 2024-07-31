@@ -23,12 +23,21 @@ type IhandleConnection = (
   message: string;
 }>;
 
-const DataContext = createContext<{
+interface DataContextProps {
   connection: Connection;
   handleConnection: IhandleConnection;
   onOpen: () => void;
   databases: string[];
-}>({
+  SelectDatabase: (database: string) => Promise<{
+    [key: string]: string[];
+  }>;
+  executeQueery: (query: string) => Promise<void>;
+  selectedDatabase: string;
+  recentResults: string;
+  queryError: string;
+}
+
+const DataContext = createContext<DataContextProps>({
   connection: {
     dbType: "",
     host: "",
@@ -36,11 +45,33 @@ const DataContext = createContext<{
     user: "",
     isConnected: false,
   },
-  handleConnection: async () => {
-    return { status: "", message: "" };
+  handleConnection: function (
+    dbType: string,
+    host: string,
+    port: number,
+    user: string,
+    password: string
+  ): Promise<{
+    status: string;
+    message: string;
+  }> {
+    throw new Error("Function not implemented.");
   },
-  onOpen: () => {},
+  onOpen: function (): void {
+    throw new Error("Function not implemented.");
+  },
   databases: [],
+  SelectDatabase: function (database: string): Promise<{
+    [key: string]: string[];
+  }> {
+    throw new Error("Function not implemented.");
+  },
+  executeQueery: function (query: string): Promise<void> {
+    throw new Error("Function not implemented.");
+  },
+  selectedDatabase: "",
+  recentResults: "",
+  queryError: "",
 });
 
 const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -53,6 +84,12 @@ const DataProvider = ({ children }: { children: ReactNode }) => {
     isConnected: false,
   });
   const [databases, setDatabases] = useState<string[]>([]);
+
+  const [selectedDatabase, setSelectedDatabase] = useState<string>("");
+
+  const [recentResults, setRecentResults] = useState<string>("");
+
+  const [queryError, setQueryError] = useState<string>("");
 
   const handleConnection: IhandleConnection = async (
     dbType,
@@ -95,11 +132,56 @@ const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const SelectDatabase = async (database: string) => {
+    setSelectedDatabase(database);
+    const dbContent = await invoke("select_database", {
+      dbName: { name: database },
+    });
+    return dbContent as { [key: string]: string[] };
+  };
+
+  const executeQueery = async (query: string) => {
+    setQueryError("");
+    await invoke("execute_query", {
+      query: query,
+    })
+      .then((r) => {
+        setRecentResults(r as string);
+        return r;
+      })
+      .catch((e) => {
+        setQueryError(e as string);
+        return e;
+      });
+  };
+
+  const executeTableType = async () => {
+    const query = `SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
+               FROM INFORMATION_SCHEMA.COLUMNS 
+               WHERE TABLE_SCHEMA = '${selectedDatabase}' AND TABLE_NAME = 'users' 
+               ORDER BY ORDINAL_POSITION`;
+
+    const res = await invoke("execute_query", { query: query });
+  };
+
   return (
     <DataContext.Provider
-      value={{ connection, handleConnection, onOpen, databases }}
+      value={{
+        connection,
+        handleConnection,
+        onOpen,
+        databases,
+        SelectDatabase,
+        selectedDatabase,
+        executeQueery,
+        recentResults,
+        queryError,
+      }}
     >
-      <div> {children}</div>
+      <div>
+        <button onClick={executeTableType}>EXE</button>
+        {children}
+      </div>
       <ConnectionModal isOpen={isOpen} onOpenChange={onOpenChange} />
     </DataContext.Provider>
   );

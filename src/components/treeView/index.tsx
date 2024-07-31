@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { FC, useState } from "react";
 import {
   FcCommandLine,
   FcDatabase,
@@ -19,9 +19,10 @@ type NodeType =
   | "column"
   | "folder";
 
-interface TreeNodeProps {
+interface TreeNodePropsItems {
   label: string;
   type: NodeType;
+  selectDB: (database: string) => void;
   children?: TreeNodeProps[];
 }
 
@@ -45,7 +46,12 @@ const getIconForType = (type: NodeType) => {
   }
 };
 
-const TreeNode: React.FC<TreeNodeProps> = ({ label, type, children }) => {
+const TreeNode: React.FC<TreeNodePropsItems> = ({
+  label,
+  type,
+  children,
+  selectDB,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = children && children.length > 0;
 
@@ -54,7 +60,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ label, type, children }) => {
       <div
         className={`flex items-center cursor-pointer py-1 transition-all duration-200 ease-in-out 
                     ${isOpen ? "opacity-100" : "opacity-80"} hover:opacity-100`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (type === "database" && !isOpen) selectDB(label);
+          setIsOpen(!isOpen);
+        }}
       >
         <span className="mr-2">{getIconForType(type)}</span>
         <span className="select-none text-xs">{label}</span>
@@ -69,7 +78,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ label, type, children }) => {
                       }`}
         >
           {children.map((child, index) => (
-            <TreeNode key={index} {...child} />
+            <TreeNode selectDB={selectDB} key={index} {...child} />
           ))}
         </div>
       )}
@@ -77,15 +86,26 @@ const TreeNode: React.FC<TreeNodeProps> = ({ label, type, children }) => {
   );
 };
 
-interface TreeViewProps {
-  data: TreeNodeProps[];
+interface TreeNodeProps {
+  label: string;
+  type: NodeType;
+  children?: TreeNodeProps[];
 }
 
-const TreeView: React.FC<TreeViewProps> = ({ data }) => {
+interface TreeViewProps {
+  data: {
+    label: string;
+    type: NodeType;
+    children?: TreeNodeProps[];
+  }[];
+  selectDB: (database: string) => void;
+}
+
+const TreeView: FC<TreeViewProps> = ({ data, selectDB }) => {
   return (
     <div className="">
       {data.map((node, index) => (
-        <TreeNode key={index} {...node} />
+        <TreeNode selectDB={selectDB} key={index} {...node} />
       ))}
     </div>
   );

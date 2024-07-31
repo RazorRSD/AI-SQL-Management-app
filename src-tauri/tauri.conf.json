@@ -1,5 +1,5 @@
 {
-  "productName": "tauri-test",
+  "productName": "sql-manager",
   "version": "0.1.0",
   "identifier": "com.sql.manager",
   "build": {
@@ -31,6 +31,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "icons/**/*",
+      "scripts/**/*"
     ]
   },
   "$schema": "../node_modules/@tauri-apps/cli/schema.json"
