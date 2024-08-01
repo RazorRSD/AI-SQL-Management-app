@@ -11,16 +11,12 @@ import {
   start_python_script,
 } from "#/api/ai";
 import {
-  Autocomplete,
-  AutocompleteItem,
-  Avatar,
   Button,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Progress,
   Select,
   SelectedItems,
   SelectItem,
@@ -28,14 +24,7 @@ import {
   Tooltip,
   useDisclosure,
 } from "@nextui-org/react";
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import { DataContext } from "./dataContext";
+import { createContext, ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 interface IAiContext {
@@ -148,16 +137,17 @@ const AIProvider = ({ children }: { children: ReactNode }) => {
     const result = await checkPythonSetup();
     if (!result.status) {
       setError("Could not find python installation");
-      if (
-        result.error ===
-        "Python 3.10 is not installed. Would you like to install it?"
-      ) {
-        if (confirm(result.error)) {
+      if (result.error) {
+        if (
+          confirm("Python 3.10 is not installed. Would you like to install it?")
+        ) {
+          setError("");
+          setLoadingMessage("Installing python");
           const res = await installPython();
-          if (res) {
+          if (res.status) {
             setSystemReady(true);
           } else {
-            setError("Error installing python");
+            setError((res.error as string) || "Error installing python");
             return;
           }
         }
@@ -418,6 +408,7 @@ ORDER BY
                 ) : (
                   <div className="h-64 w-full flex flex-col justify-center items-center">
                     <Spinner label={loadingMessage} />
+                    {error && <div className="text-red-500">{error}</div>}
                   </div>
                 )}
               </ModalBody>

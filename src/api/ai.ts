@@ -58,9 +58,9 @@ async function checkPythonSetup() {
 async function installPython() {
   try {
     const result = await invoke("install_python");
-    return result;
+    return { status: true, result };
   } catch (error) {
-    throw error;
+    return { status: false, error };
   }
 }
 

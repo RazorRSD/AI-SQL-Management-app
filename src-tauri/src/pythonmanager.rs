@@ -1,4 +1,5 @@
 use std::fs;
+use std::os::windows::process::CommandExt;
 use std::path::Path;
 use std::process::Child;
 use std::process::Command;
@@ -37,12 +38,15 @@ fn parse_python_version(version_string: &str) -> Option<(u32, u32, u32)> {
     }
 }
 
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 #[tauri::command]
 pub fn check_python_installation() -> Result<String, String> {
     let python_path = find_python().ok_or_else(|| "Python not found in PATH".to_string())?;
 
     let output = Command::new(python_path)
         .args(&["--version"])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| e.to_string())?;
 
@@ -80,13 +84,14 @@ pub async fn install_python() -> Result<String, String> {
             .args(&[
                 "install",
                 "--id",
-                "Python.Python.3.10",
-                "--version",
-                "3.10.11",
+                "9PJPW5LDXLZ5",
+                "--source",
+                "msstore",
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -112,6 +117,7 @@ pub async fn install_python() -> Result<String, String> {
 pub async fn get_installation_status() -> Result<String, String> {
     let output = Command::new("where")
         .arg("python")
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| e.to_string())?;
 
@@ -147,6 +153,7 @@ pub async fn manage_venv() -> Result<String, String> {
         // Create the virtual environment
         let output = Command::new("python")
             .args(&["-m", "venv", venv_path.to_str().unwrap()])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -184,6 +191,7 @@ pub async fn manage_venv() -> Result<String, String> {
                 "pydantic==2.8.2",
                 "numpy==1.26.4",
             ])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -257,6 +265,7 @@ pub fn start_python_script() -> Result<String, String> {
 
     let child = Command::new(python_executable)
         .arg(script_path)
+        .creation_flags(CREATE_NO_WINDOW)
         .spawn()
         .map_err(|e| format!("Failed to start Python process: {}", e))?;
 
@@ -271,6 +280,7 @@ pub fn stop_python_script() -> Result<String, String> {
         // On Windows, we need to kill the process tree
         let output = Command::new("taskkill")
             .args(&["/F", "/T", "/PID", &p.child.id().to_string()])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("Failed to kill Python process: {}", e))?;
 
@@ -363,6 +373,7 @@ pub fn update_venv_requirements() -> Result<String, String> {
             "pydantic==2.8.2",
             "numpy==1.26.4",
         ])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Failed to update packages: {}", e))?;
 
