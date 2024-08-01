@@ -4,6 +4,7 @@ import Loading from "#/components/loading";
 import Toolbar from "#/components/toolbar";
 import { AIProvider } from "#/providers/aiContext";
 import { DataProvider } from "#/providers/dataContext";
+import { EditorProvider } from "#/providers/editorContext";
 import dynamic from "next/dynamic";
 
 const MainWin = dynamic(() => import("#/components/mainwin"), {
@@ -16,11 +17,13 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-between">
       <DataProvider>
         <AIProvider>
-          <div>
-            <Toolbar />
-            <MainWin />
-            <Footer />
-          </div>
+          <EditorProvider>
+            <div>
+              <Toolbar />
+              <MainWin />
+              <Footer />
+            </div>
+          </EditorProvider>
         </AIProvider>
       </DataProvider>
     </main>

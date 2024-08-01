@@ -20,6 +20,7 @@ import {
 } from "./config";
 import { DataContext } from "#/providers/dataContext";
 import { AiContext } from "#/providers/aiContext";
+import { EditorContext } from "#/providers/editorContext";
 
 interface ITableData {
   tableName: string;
@@ -44,8 +45,7 @@ const SQLEditor = () => {
 
   const { executeQueery } = useContext(DataContext);
   const { Generate } = useContext(AiContext);
-
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const { editorRef } = useContext(EditorContext);
   const [selectedText, setSelectedText] = useState("");
   const completionProviderRef = useRef<monaco.IDisposable | null>(null);
 
@@ -184,6 +184,7 @@ const SQLEditor = () => {
       <Editor
         theme="sqlTheme"
         defaultLanguage="sql"
+        onChange={(value) => console.log(value)}
         options={{
           minimap: { enabled: false },
           fontSize: 14,
@@ -229,9 +230,12 @@ const SQLEditor = () => {
             keybindings: [
               monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyA,
             ],
-            run: function (ed) {
-              Generate(
+            run: async function (ed) {
+              const res = await Generate(
                 getSelectedText() || editorRef.current?.getValue() || ""
+              );
+              editorRef.current?.setValue(
+                editorRef.current?.getValue() + "\n\n" + res
               );
               // Perform your custom action here
             },

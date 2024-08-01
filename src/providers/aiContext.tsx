@@ -7,6 +7,7 @@ import {
   isVirtualEnvExisted,
   pingApi,
   setHfTokenAndRepo,
+  setSchema,
   start_python_script,
 } from "#/api/ai";
 import {
@@ -27,7 +28,15 @@ import {
   Tooltip,
   useDisclosure,
 } from "@nextui-org/react";
-import { createContext, ReactNode, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { DataContext } from "./dataContext";
+import { invoke } from "@tauri-apps/api/core";
 
 interface IAiContext {
   model: string;
@@ -257,8 +266,58 @@ const AIProvider = ({ children }: { children: ReactNode }) => {
     loadModel();
   };
 
+  function sqlLikeToJson(sqlLikeData: string): Record<string, any>[] {
+    const rows = sqlLikeData.trim().split("\n");
+
+    return rows.map((row) => {
+      const pairs = row.split("\t");
+      const rowObject: Record<string, any> = {};
+
+      pairs.forEach((pair) => {
+        const [key, value] = pair.split(": ");
+        rowObject[key] = value;
+      });
+
+      return rowObject;
+    });
+  }
+
+  const executeQueerySlient = async () => {
+    const DataPromt = `SELECT 
+    t.TABLE_NAME AS 'TableName',
+    GROUP_CONCAT(c.COLUMN_NAME ORDER BY c.ORDINAL_POSITION SEPARATOR ', ') AS 'AllColumns'
+FROM 
+    information_schema.TABLES t
+JOIN 
+    information_schema.COLUMNS c 
+    ON t.TABLE_SCHEMA = c.TABLE_SCHEMA 
+    AND t.TABLE_NAME = c.TABLE_NAME
+WHERE  
+    t.TABLE_SCHEMA = 'laravel'
+GROUP BY 
+    t.TABLE_NAME
+ORDER BY 
+    t.TABLE_NAME;`;
+    const res = await invoke("execute_query", {
+      query: DataPromt.replace(
+        "laravel",
+        localStorage.getItem("selectedDatabase") || ""
+      ),
+    });
+    return res as string;
+  };
+
+  const setSchematoModel = async () => {
+    const result = await executeQueerySlient();
+    const res = await setSchema({
+      schema: { tables: sqlLikeToJson(result) },
+    });
+  };
+
   const Generate = async (text: string) => {
+    // setSchematoModel();
     const response = await generateSQL(text);
+    console.log(response);
     return response;
   };
 

@@ -35,6 +35,7 @@ interface DataContextProps {
   selectedDatabase: string;
   recentResults: string;
   queryError: string;
+  executeQueerySlient: () => Promise<string>;
 }
 
 const DataContext = createContext<DataContextProps>({
@@ -72,6 +73,9 @@ const DataContext = createContext<DataContextProps>({
   selectedDatabase: "",
   recentResults: "",
   queryError: "",
+  executeQueerySlient: function (): Promise<string> {
+    throw new Error("Function not implemented.");
+  },
 });
 
 const DataProvider = ({ children }: { children: ReactNode }) => {
@@ -133,7 +137,8 @@ const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const SelectDatabase = async (database: string) => {
-    setSelectedDatabase(database);
+    console.log("Selecting database", database);
+    localStorage.setItem("selectedDatabase", database);
     const dbContent = await invoke("select_database", {
       dbName: { name: database },
     });
@@ -155,13 +160,29 @@ const DataProvider = ({ children }: { children: ReactNode }) => {
       });
   };
 
-  const executeTableType = async () => {
-    const query = `SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
-               FROM INFORMATION_SCHEMA.COLUMNS 
-               WHERE TABLE_SCHEMA = '${selectedDatabase}' AND TABLE_NAME = 'users' 
-               ORDER BY ORDINAL_POSITION`;
-
-    const res = await invoke("execute_query", { query: query });
+  const executeQueerySlient = async () => {
+    const DataPromt = `SELECT 
+    t.TABLE_NAME AS 'TableName',
+    GROUP_CONCAT(c.COLUMN_NAME ORDER BY c.ORDINAL_POSITION SEPARATOR ', ') AS 'AllColumns'
+FROM 
+    information_schema.TABLES t
+JOIN 
+    information_schema.COLUMNS c 
+    ON t.TABLE_SCHEMA = c.TABLE_SCHEMA 
+    AND t.TABLE_NAME = c.TABLE_NAME
+WHERE  
+    t.TABLE_SCHEMA = 'laravel'
+GROUP BY 
+    t.TABLE_NAME
+ORDER BY 
+    t.TABLE_NAME;`;
+    const res = await invoke("execute_query", {
+      query: DataPromt.replace(
+        "laravel",
+        localStorage.getItem("selectedDatabase") || ""
+      ),
+    });
+    return res as string;
   };
 
   return (
@@ -176,12 +197,10 @@ const DataProvider = ({ children }: { children: ReactNode }) => {
         executeQueery,
         recentResults,
         queryError,
+        executeQueerySlient,
       }}
     >
-      <div>
-        <button onClick={executeTableType}>EXE</button>
-        {children}
-      </div>
+      <div>{children}</div>
       <ConnectionModal isOpen={isOpen} onOpenChange={onOpenChange} />
     </DataContext.Provider>
   );

@@ -7,6 +7,7 @@ from huggingface_hub import hf_hub_download, list_repo_files
 from ctransformers import AutoModelForCausalLM
 import uvicorn
 from sys import argv
+import json
 
 global reload_state
 if "dev" not in argv:
@@ -42,10 +43,14 @@ class TokenRepoRequest(BaseModel):
     token: str
     repo: str
 
+class SchemaRequest(BaseModel):
+    schema: dict
+
 # Global variables
 current_model = None
 hf_token = None
 repo_id = None
+table_schemas = {}
 
 # Improved GPU detection
 gpu_available = False
@@ -69,8 +74,10 @@ def generate_response(prompt):
         raise HTTPException(status_code=400, detail="No model loaded")
     
     logging.debug(f"Generating response for prompt: {prompt}")
+    schema_info = json.dumps(table_schemas, indent=2)
     full_prompt = f"""
-    You are an AI assistant that generates SQL code. Please provide only the SQL code as your response, without any additional explanations.
+    Table Schemas:
+    {schema_info}
 
     Task: {prompt}
 
@@ -78,7 +85,7 @@ def generate_response(prompt):
     """
     response = current_model(full_prompt, max_new_tokens=1000, temperature=0.7, stop=["Human:", "Task:"])
     logging.debug(f"Generated SQL:\n{response}")
-    return response
+    return response.strip()
 
 @app.post("/set_token_and_repo")
 async def set_token_and_repo(request: TokenRepoRequest):
@@ -87,11 +94,17 @@ async def set_token_and_repo(request: TokenRepoRequest):
     repo_id = request.repo
     return {"message": f"Token and repo set. Repo: {repo_id}"}
 
+@app.post("/set_schema")
+async def set_schema(request: SchemaRequest):
+    global table_schemas
+    table_schemas = request.schema
+    return {"message": "Schema set successfully"}
+
 @app.post("/generate_sql")
 async def generate_sql(request: SQLRequest):
     try:
         sql = generate_response(request.prompt)
-        return {"sql": sql}
+        return sql
     except Exception as e:
         logging.error(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

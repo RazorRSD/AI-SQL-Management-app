@@ -105,8 +105,31 @@ async function generateSQL(prompt: string) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data.sql;
+    const dataRaw = await response.json();
+    const data = dataRaw.split("```")[0];
+    return data;
+  } catch (error) {
+    console.error("Error generating SQL:", error);
+    throw error;
+  }
+}
+
+async function setSchema(schema: Object) {
+  console.log("Setting schema", schema);
+  try {
+    const response = await fetch("http://localhost:8000/set_schema", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(schema),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
   } catch (error) {
     console.error("Error generating SQL:", error);
     throw error;
@@ -122,4 +145,5 @@ export {
   activateVirtualEnv,
   start_python_script,
   generateSQL,
+  setSchema,
 };
